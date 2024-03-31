@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"encoding/json"
+	"github.com/gorilla/handlers"
 )
 
 type Player struct {
@@ -48,14 +49,14 @@ func main() {
 		return
 	}
 
+	tmpl := template.Must(template.ParseFiles("index.html"))
+
 	h1 := func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles("index.html"))
 		tmpl.Execute(w, players)
 	}
 
-
 	http.HandleFunc("/", h1)
 
-	log.Fatal(http.ListenAndServe("localhost:9000", nil))
+	log.Fatal(http.ListenAndServe("localhost:9000", handlers.CompressHandler(http.DefaultServeMux)))
 
 }
