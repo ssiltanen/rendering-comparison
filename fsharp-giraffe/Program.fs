@@ -1,4 +1,5 @@
 ﻿open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Http
 open Giraffe
 open Giraffe.ViewEngine
 
@@ -24,7 +25,7 @@ let index content =
                 title [] [ encodedText "F# Template Rendering" ] ]
           body [ _class "container" ] content ]
 
-let playerDiv player =
+let inline playerDiv player =
     li [ _class "my-2 ml-2 bg-white odd:bg-gray-50" ] [ encodedText $"{player.name} - {player.score}" ]
 
 let playerList players =
@@ -33,7 +34,20 @@ let playerList players =
           [ h1 [ _class "text-xl my-4" ] [ encodedText "Players" ]
             ul [ _class "border" ] (players |> List.map playerDiv) ] ]
 
-let routes = choose [ route "/" >=> htmlView (players |> playerList |> index) ]
+let noCacheIndex (players: Player list) =
+    fun (_: HttpFunc) (ctx: HttpContext) ->
+        ctx.SetContentType "text/html; charset=utf-8"
+
+        players
+        |> playerList
+        |> index
+        |> RenderView.AsBytes.htmlDocument
+        |> ctx.WriteBytesAsync
+
+let routes =
+    choose
+        [ route "/" >=> noCacheIndex players
+          route "/cached" >=> htmlView (players |> playerList |> index) ]
 
 let builder = WebApplication.CreateBuilder()
 builder.Services.AddGiraffe() |> ignore
